@@ -11,18 +11,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # Temporarily disabled frontend build until it exists
-      # - name: Install frontend dependencies
-      #   run: |
-      #     cd frontend
-      #     npm install
-      #     npm run build
+      # Frontend (optional placeholder)
+      - name: Install frontend dependencies
+        if: exists('frontend/package.json')
+        run: |
+          cd frontend
+          npm install
+          npm run build
 
+      # Backend (TypeScript compilation)
       - name: Install backend dependencies
         run: |
           cd backend
