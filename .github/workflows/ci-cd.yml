@@ -8,20 +8,22 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: gcp-demo   # optional if you want to tie builds to environment
 
     steps:
       - uses: actions/checkout@v3
+
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # Temporarily disabled frontend build until it exists
-      # - name: Install frontend dependencies
-      #   run: |
-      #     cd frontend
-      #     npm install
-      #     npm run build
+      - name: Install frontend dependencies
+        if: exists('frontend/package.json')
+        run: |
+          cd frontend
+          npm install
+          npm run build
 
       - name: Install backend dependencies
         run: |

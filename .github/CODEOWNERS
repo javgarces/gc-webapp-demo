@@ -1,0 +1,5 @@
+# Require review from you for backend changes
+/backend/* @javgarces
+
+# Require review from you for frontend changes
+/frontend/* @javgarces
