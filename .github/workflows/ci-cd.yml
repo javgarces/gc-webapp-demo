@@ -1,0 +1,27 @@
+name: Build & Deploy Demo
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm install
+          npm run build
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm install
+          npm run build
