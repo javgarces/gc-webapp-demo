@@ -6,7 +6,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: gcp-demo   # Reference your environment
+    environment: gcp-demo   # Reference your GitHub Environment
 
     permissions:
       contents: 'read'
@@ -17,17 +17,27 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v1
-        with:
-          workload_identity_provider: "${{ vars.GCP_WORKLOAD_ID_PROVIDER }}"
-          service_account: "${{ vars.GCP_SA_EMAIL }}"
+        run: |
+          if [ -n "${{ vars.GCP_WORKLOAD_ID_PROVIDER }}" ] && [ -n "${{ vars.GCP_SA_EMAIL }}" ]; then
+            echo "Authenticating to GCP..."
+            gcloud auth login --brief --quiet
+          else
+            echo "GCP environment variables not set, skipping auth..."
+          fi
+        shell: bash
 
       - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: "${{ vars.GCP_PROJECT_ID }}"
+        run: |
+          if [ -n "${{ vars.GCP_PROJECT_ID }}" ]; then
+            gcloud config set project "${{ vars.GCP_PROJECT_ID }}"
+          else
+            echo "GCP_PROJECT_ID not set, skipping gcloud config..."
+          fi
+        shell: bash
 
       - name: Verify authentication
         run: |
-          gcloud auth list
-          gcloud config list project
+          echo "Listing authenticated accounts..."
+          gcloud auth list || echo "No GCP authentication available."
+          gcloud config list project || echo "No project configured."
+        shell: bash

@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: gcp-demo   # optional if you want to tie builds to environment
+    environment: gcp-demo
 
     steps:
       - uses: actions/checkout@v3
@@ -19,11 +19,14 @@ jobs:
           node-version: '20'
 
       - name: Install frontend dependencies
-        if: exists('frontend/package.json')
         run: |
-          cd frontend
-          npm install
-          npm run build
+          if [ -f frontend/package.json ]; then
+            cd frontend
+            npm install
+            npm run build
+          else
+            echo "No frontend folder, skipping..."
+          fi
 
       - name: Install backend dependencies
         run: |
