@@ -15,11 +15,14 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm install
-          npm run build
+
+      # Temporarily disabled frontend build until it exists
+      # - name: Install frontend dependencies
+      #   run: |
+      #     cd frontend
+      #     npm install
+      #     npm run build
+
       - name: Install backend dependencies
         run: |
           cd backend
