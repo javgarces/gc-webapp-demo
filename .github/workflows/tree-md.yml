@@ -1,0 +1,19 @@
+name: Repo Tree Markdown
+
+on:
+  workflow_dispatch:
+
+jobs:
+  tree:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install tree
+        run: sudo apt-get update && sudo apt-get install -y tree
+
+      - name: Output Markdown-style tree
+        run: |
+          echo "## Repo Structure"
+          tree -L 3 --dirsfirst | sed 's/^/    /'
