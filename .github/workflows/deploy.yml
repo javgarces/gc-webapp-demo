@@ -1,4 +1,4 @@
-name: Deploy to Google Cloud
+name: Deploy to Cloud Run with IAP
 
 on:
   workflow_dispatch:
@@ -6,38 +6,48 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: gcp-demo   # Reference your GitHub Environment
-
     permissions:
       contents: 'read'
       id-token: 'write'
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Authenticate to Google Cloud
-        run: |
-          if [ -n "${{ vars.GCP_WORKLOAD_ID_PROVIDER }}" ] && [ -n "${{ vars.GCP_SA_EMAIL }}" ]; then
-            echo "Authenticating to GCP..."
-            gcloud auth login --brief --quiet
-          else
-            echo "GCP environment variables not set, skipping auth..."
-          fi
-        shell: bash
+      - name: Set up gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_ID_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
 
-      - name: Set up gcloud
+      - name: Build and push container
         run: |
-          if [ -n "${{ vars.GCP_PROJECT_ID }}" ]; then
-            gcloud config set project "${{ vars.GCP_PROJECT_ID }}"
-          else
-            echo "GCP_PROJECT_ID not set, skipping gcloud config..."
-          fi
-        shell: bash
+          cd backend
+          gcloud builds submit --tag gcr.io/${{ vars.GCP_PROJECT_ID }}/demo-backend
 
-      - name: Verify authentication
+      - name: Terraform Init & Apply
+        working-directory: infra
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_SA_EMAIL: ${{ vars.GCP_SA_EMAIL }}
+          GCP_WORKLOAD_ID_PROVIDER: ${{ vars.GCP_WORKLOAD_ID_PROVIDER }}
+          ALLOWED_USER_EMAIL: ${{ vars.ALLOWED_USER_EMAIL }}
+          SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
+          REGION: australia-southeast1
         run: |
-          echo "Listing authenticated accounts..."
-          gcloud auth list || echo "No GCP authentication available."
-          gcloud config list project || echo "No project configured."
-        shell: bash
+          # Authenticate gcloud via Workload Identity Federation
+          gcloud auth login --brief --cred-file <(echo "{}") \
+            --impersonate-service-account=${GCP_SA_EMAIL}
+
+          # Initialize Terraform
+          terraform init
+
+          # Apply Terraform, passing env variables as -var
+          terraform apply -auto-approve \
+            -var="project_id=${GCP_PROJECT_ID}" \
+            -var="deployer_sa_email=${GCP_SA_EMAIL}" \
+            -var="wif_provider=${GCP_WORKLOAD_ID_PROVIDER}" \
+            -var="allowed_user_email=${ALLOWED_USER_EMAIL}" \
+            -var="support_email=${SUPPORT_EMAIL}" \
+            -var="region=${REGION}"
+
