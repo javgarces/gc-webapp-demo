@@ -31,6 +31,12 @@ jobs:
           workload_identity_provider: ${{ env.GCP_WORKLOAD_ID_PROVIDER }}
           service_account: ${{ env.GCP_SA_EMAIL }}
 
+      # Authenticate gcloud via Workload Identity Federation (global for all gcloud commands)
+      - name: Authenticate gcloud
+        run: |
+          gcloud auth login --brief --cred-file <(echo "{}") \
+            --impersonate-service-account=${{ env.GCP_SA_EMAIL }}
+
       # Ensure gcloud uses the correct project globally
       - name: Configure gcloud project
         run: |
@@ -47,10 +53,6 @@ jobs:
       - name: Terraform Init & Apply
         working-directory: infra
         run: |
-          # Authenticate gcloud via Workload Identity Federation
-          gcloud auth login --brief --cred-file <(echo "{}") \
-            --impersonate-service-account=${{ env.GCP_SA_EMAIL }}
-
           # Initialize Terraform
           terraform init
 
