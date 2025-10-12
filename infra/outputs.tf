@@ -1,12 +1,7 @@
-output "project_id" {
-  value = var.project_id
+output "cloud_run_url" {
+  value = google_cloud_run_service.backend.status[0].url
 }
 
-output "bucket_url" {
-  value = "https://storage.googleapis.com/${google_storage_bucket.frontend_bucket.name}/index.html"
-}
-
-output "frontend_api_key" {
-  value     = google_api_key.frontend_key.key_string
-  sensitive = true
+output "iap_client_id" {
+  value = google_iap_client.iap_client.client_id
 }
