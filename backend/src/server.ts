@@ -1,12 +1,16 @@
-import express from "express";
+import express from 'express';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 
-app.get("/", (_req, res) => {
-  res.send("Hello from backend!");
+// Simple protected endpoint
+app.get('/', (req, res) => {
+  // IAP passes headers with user info
+  const email = req.header('x-goog-authenticated-user-email');
+  const user = email ? email.replace('accounts.google.com:', '') : 'anonymous';
+  res.send(`Hello, ${user}! You are authenticated via IAP.`);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Backend running on port ${port}`);
 });
