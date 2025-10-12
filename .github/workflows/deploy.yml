@@ -1,43 +1,46 @@
-name: Deploy to Google Cloud
+name: Deploy to GCP
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: gcp-demo   # Reference your GitHub Environment
 
     permissions:
-      contents: 'read'
-      id-token: 'write'
+      contents: read
+      id-token: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
-        run: |
-          if [ -n "${{ vars.GCP_WORKLOAD_ID_PROVIDER }}" ] && [ -n "${{ vars.GCP_SA_EMAIL }}" ]; then
-            echo "Authenticating to GCP..."
-            gcloud auth login --brief --quiet
-          else
-            echo "GCP environment variables not set, skipping auth..."
-          fi
-        shell: bash
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
 
       - name: Set up gcloud
-        run: |
-          if [ -n "${{ vars.GCP_PROJECT_ID }}" ]; then
-            gcloud config set project "${{ vars.GCP_PROJECT_ID }}"
-          else
-            echo "GCP_PROJECT_ID not set, skipping gcloud config..."
-          fi
-        shell: bash
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Verify authentication
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: infra
+        run: terraform apply -auto-approve -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="bucket_name=${{ secrets.FRONTEND_BUCKET_NAME }}"
+
+      - name: Deploy static frontend
         run: |
-          echo "Listing authenticated accounts..."
-          gcloud auth list || echo "No GCP authentication available."
-          gcloud config list project || echo "No project configured."
-        shell: bash
+          gsutil -m cp -r frontend/* gs://$FRONTEND_BUCKET_NAME
+        env:
+          FRONTEND_BUCKET_NAME: ${{ secrets.FRONTEND_BUCKET_NAME }}
