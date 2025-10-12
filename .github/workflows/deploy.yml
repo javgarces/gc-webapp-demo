@@ -36,6 +36,7 @@ jobs:
           REGION: australia-southeast1
         run: |
           # Authenticate gcloud via Workload Identity Federation
+          gcloud config set project $GCP_PROJECT_ID
           gcloud auth login --brief --cred-file <(echo "{}") \
             --impersonate-service-account=${GCP_SA_EMAIL}
 
