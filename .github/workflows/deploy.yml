@@ -25,12 +25,29 @@ jobs:
           cd backend
           gcloud builds submit --tag gcr.io/${{ vars.GCP_PROJECT_ID }}/demo-backend
 
-      - name: Terraform Apply
+      - name: Terraform Init & Apply
+        working-directory: infra
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_SA_EMAIL: ${{ vars.GCP_SA_EMAIL }}
+          GCP_WORKLOAD_ID_PROVIDER: ${{ vars.GCP_WORKLOAD_ID_PROVIDER }}
+          ALLOWED_USER_EMAIL: ${{ vars.ALLOWED_USER_EMAIL }}
+          SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
+          REGION: australia-southeast1
         run: |
-          cd infra
+          # Authenticate gcloud via Workload Identity Federation
+          gcloud auth login --brief --cred-file <(echo "{}") \
+            --impersonate-service-account=${GCP_SA_EMAIL}
+
+          # Initialize Terraform
           terraform init
+
+          # Apply Terraform, passing env variables as -var
           terraform apply -auto-approve \
-            -var="project_id=${{ vars.GCP_PROJECT_ID }}" \
-            -var="container_image=gcr.io/${{ vars.GCP_PROJECT_ID }}/demo-backend" \
-            -var="support_email=${{ vars.SUPPORT_EMAIL }}" \
-            -var="allowed_user_email=${{ vars.ALLOWED_USER_EMAIL }}"
+            -var="project_id=${GCP_PROJECT_ID}" \
+            -var="deployer_sa_email=${GCP_SA_EMAIL}" \
+            -var="wif_provider=${GCP_WORKLOAD_ID_PROVIDER}" \
+            -var="allowed_user_email=${ALLOWED_USER_EMAIL}" \
+            -var="support_email=${SUPPORT_EMAIL}" \
+            -var="region=${REGION}"
+
