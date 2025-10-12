@@ -11,7 +11,6 @@ jobs:
       contents: 'read'
       id-token: 'write'
 
-    # Declare all GitHub vars at job level
     env:
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       GCP_SA_EMAIL: ${{ vars.GCP_SA_EMAIL }}
@@ -23,13 +22,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # Set up gcloud CLI with Workload Identity Federation
+      # Authenticate to GCP via Workload Identity Federation
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_ID_PROVIDER }}
+          service_account: ${{ env.GCP_SA_EMAIL }}
+
+      # Set up gcloud CLI
       - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_ID_PROVIDER }}
-          service_account: ${{ env.GCP_SA_EMAIL }}
 
       # Ensure gcloud uses the correct project globally
       - name: Configure gcloud project
@@ -37,13 +41,11 @@ jobs:
           echo "Setting gcloud project to ${{ env.GCP_PROJECT_ID }}"
           gcloud config set project ${{ env.GCP_PROJECT_ID }}
 
-      # Build and push backend container to GCR using impersonated service account
+      # Build and push backend container to GCR
       - name: Build and push container
         run: |
           cd backend
-          gcloud builds submit \
-            --tag gcr.io/${{ env.GCP_PROJECT_ID }}/demo-backend \
-            --impersonate-service-account=${{ env.GCP_SA_EMAIL }}
+          gcloud builds submit --tag gcr.io/${{ env.GCP_PROJECT_ID }}/demo-backend
 
       # Run Terraform to deploy Cloud Run & IAP
       - name: Terraform Init & Apply
