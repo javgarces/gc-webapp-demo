@@ -23,3 +23,8 @@ variable "allowed_user_email" {
   description = "Email allowed to access IAP"
   type        = string
 }
+
+variable "deployer_sa_email" {
+  description = "Service account email for GitHub Actions deployments"
+  type        = string
+}
