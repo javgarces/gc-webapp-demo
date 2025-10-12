@@ -13,6 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # Set up gcloud CLI with Workload Identity Federation
       - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
@@ -20,11 +21,18 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_ID_PROVIDER }}
           service_account: ${{ vars.GCP_SA_EMAIL }}
 
+      # Ensure gcloud uses the correct project for all following commands
+      - name: Configure gcloud project
+        run: |
+          gcloud config set project ${{ vars.GCP_PROJECT_ID }}
+
+      # Build and push backend container to GCR
       - name: Build and push container
         run: |
           cd backend
           gcloud builds submit --tag gcr.io/${{ vars.GCP_PROJECT_ID }}/demo-backend
 
+      # Run Terraform to deploy Cloud Run & IAP
       - name: Terraform Init & Apply
         working-directory: infra
         env:
@@ -36,14 +44,13 @@ jobs:
           REGION: australia-southeast1
         run: |
           # Authenticate gcloud via Workload Identity Federation
-          gcloud config set project $GCP_PROJECT_ID
           gcloud auth login --brief --cred-file <(echo "{}") \
             --impersonate-service-account=${GCP_SA_EMAIL}
 
           # Initialize Terraform
           terraform init
 
-          # Apply Terraform, passing env variables as -var
+          # Apply Terraform using env variables
           terraform apply -auto-approve \
             -var="project_id=${GCP_PROJECT_ID}" \
             -var="deployer_sa_email=${GCP_SA_EMAIL}" \
@@ -51,4 +58,3 @@ jobs:
             -var="allowed_user_email=${ALLOWED_USER_EMAIL}" \
             -var="support_email=${SUPPORT_EMAIL}" \
             -var="region=${REGION}"
-
