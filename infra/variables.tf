@@ -1,21 +1,25 @@
 variable "project_id" {
+  description = "The GCP project ID"
   type        = string
-  description = "GCP project ID"
 }
 
 variable "region" {
+  description = "Region to deploy resources in"
   type        = string
-  description = "Default region"
   default     = "australia-southeast1"
 }
 
-variable "bucket_name" {
+variable "container_image" {
+  description = "Docker image to deploy to Cloud Run"
   type        = string
-  description = "Name of the static hosting bucket"
 }
 
-variable "frontend_service_account" {
+variable "support_email" {
+  description = "Email for OAuth consent screen"
   type        = string
-  description = "Name of the service account for frontend to backend auth"
-  default     = "frontend-svc"
+}
+
+variable "allowed_user_email" {
+  description = "Email allowed to access IAP"
+  type        = string
 }
