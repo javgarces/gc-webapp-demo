@@ -1,46 +1,36 @@
-name: Deploy to GCP
+name: Deploy to Cloud Run with IAP
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     permissions:
-      contents: read
-      id-token: write
+      contents: 'read'
+      id-token: 'write'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.6.0
-
-      - name: Set up gcloud
+      - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.DEPLOYER_SA_EMAIL }}
 
-      - name: Terraform Init
-        working-directory: infra
-        run: terraform init
+      - name: Build and push container
+        run: |
+          cd backend
+          gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/demo-backend
 
       - name: Terraform Apply
-        working-directory: infra
-        run: terraform apply -auto-approve -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="bucket_name=${{ secrets.FRONTEND_BUCKET_NAME }}"
-
-      - name: Deploy static frontend
         run: |
-          gsutil -m cp -r frontend/* gs://$FRONTEND_BUCKET_NAME
-        env:
-          FRONTEND_BUCKET_NAME: ${{ secrets.FRONTEND_BUCKET_NAME }}
+          cd infra
+          terraform init
+          terraform apply -auto-approve \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="container_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/demo-backend" \
+            -var="support_email=${{ secrets.SUPPORT_EMAIL }}" \
+            -var="allowed_user_email=${{ secrets.ALLOWED_USER_EMAIL }}"
