@@ -1,45 +1,88 @@
-resource "google_storage_bucket" "frontend_bucket" {
-  name          = var.bucket_name
-  location      = var.region
-  force_destroy = true
+terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.30"
+    }
+  }
+}
 
-  website {
-    main_page_suffix = "index.html"
-    not_found_page   = "index.html"
+provider "google" {
+  project = var.project_id
+  region  = var.region
+}
+
+# Enable required APIs
+resource "google_project_service" "services" {
+  for_each = toset([
+    "run.googleapis.com",
+    "iap.googleapis.com",
+    "iam.googleapis.com",
+    "cloudresourcemanager.googleapis.com"
+  ])
+  project = var.project_id
+  service = each.key
+}
+
+# Create a Cloud Run service
+resource "google_cloud_run_service" "backend" {
+  name     = "demo-backend"
+  location = var.region
+
+  template {
+    spec {
+      containers {
+        image = var.container_image
+        ports {
+          container_port = 8080
+        }
+      }
+    }
   }
 
-  uniform_bucket_level_access = true
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+
+  autogenerate_revision_name = true
 }
 
-resource "google_storage_bucket_iam_binding" "public_read" {
-  bucket = google_storage_bucket.frontend_bucket.name
-
-  role = "roles/storage.objectViewer"
-  members = [
-    "allUsers"
-  ]
+# Allow only IAP to access Cloud Run
+resource "google_cloud_run_service_iam_member" "invoker" {
+  service  = google_cloud_run_service.backend.name
+  location = google_cloud_run_service.backend.location
+  role     = "roles/run.invoker"
+  member   = "allUsers"
 }
 
-# Service Account for frontend-backend auth
-resource "google_service_account" "frontend_svc" {
-  account_id   = var.frontend_service_account
-  display_name = "Frontend Service Account"
+# Backend service for IAP
+resource "google_iap_web_backend_service" "iap_backend" {
+  name             = "iap-backend"
+  project          = var.project_id
+  backend_service  = google_cloud_run_service.backend.status[0].url
+  access_settings {
+    gcip_settings {}
+  }
 }
 
-# API Key for frontend to call backend
-resource "google_api_key" "frontend_key" {
-  display_name = "frontend-key"
+# IAP brand (OAuth consent screen)
+resource "google_iap_brand" "brand" {
+  support_email = var.support_email
+  application_title = "Demo IAP App"
+  project = var.project_id
 }
 
-output "bucket_url" {
-  value = "https://storage.googleapis.com/${google_storage_bucket.frontend_bucket.name}/index.html"
+# OAuth client for IAP
+resource "google_iap_client" "iap_client" {
+  brand         = google_iap_brand.brand.name
+  display_name  = "Demo IAP Client"
 }
 
-output "frontend_api_key" {
-  value = google_api_key.frontend_key.key_string
-  sensitive = true
-}
-
-output "frontend_service_account_email" {
-  value = google_service_account.frontend_svc.email
+# Allow specific user(s)
+resource "google_iap_web_backend_service_iam_member" "access" {
+  web_backend_service = google_iap_web_backend_service.iap_backend.name
+  role                = "roles/iap.httpsResourceAccessor"
+  member              = "user:${var.allowed_user_email}"
 }
