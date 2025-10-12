@@ -11,7 +11,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
 
-    # Declare all GitHub vars / secrets at the job level
+    # Declare all GitHub vars at job level
     env:
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       GCP_SA_EMAIL: ${{ vars.GCP_SA_EMAIL }}
@@ -30,27 +30,26 @@ jobs:
           project_id: ${{ env.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ env.GCP_WORKLOAD_ID_PROVIDER }}
           service_account: ${{ env.GCP_SA_EMAIL }}
-          
+
       # Ensure gcloud uses the correct project globally
       - name: Configure gcloud project
         run: |
           echo "Setting gcloud project to ${{ env.GCP_PROJECT_ID }}"
           gcloud config set project ${{ env.GCP_PROJECT_ID }}
 
-      # Build and push backend container to GCR
+      # Build and push backend container to GCR using impersonated service account
       - name: Build and push container
         run: |
           cd backend
-          gcloud builds submit --tag gcr.io/${{ env.GCP_PROJECT_ID }}/demo-backend
+          gcloud builds submit \
+            --tag gcr.io/${{ env.GCP_PROJECT_ID }}/demo-backend \
+            --impersonate-service-account=${{ env.GCP_SA_EMAIL }}
 
       # Run Terraform to deploy Cloud Run & IAP
       - name: Terraform Init & Apply
         working-directory: infra
         run: |
-          # Initialize Terraform
           terraform init
-
-          # Apply Terraform using env variables
           terraform apply -auto-approve \
             -var="project_id=${{ env.GCP_PROJECT_ID }}" \
             -var="deployer_sa_email=${{ env.GCP_SA_EMAIL }}" \
