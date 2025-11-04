@@ -1,8 +1,3 @@
-provider "google" {
-  project = var.project_id
-  region  = var.region
-}
-
 # IAP Brand (OAuth consent screen)
 resource "google_iap_brand" "brand" {
   project           = var.project_id
@@ -16,7 +11,7 @@ resource "google_iap_client" "iap_client" {
   display_name = "Demo IAP Client"
 }
 
-# Cloud Run service
+# Cloud Run service pointing to Artifact Registry
 resource "google_cloud_run_service" "backend" {
   name     = "gc-demo-backend"
   location = var.region
@@ -25,7 +20,7 @@ resource "google_cloud_run_service" "backend" {
   template {
     spec {
       containers {
-        image = "gcr.io/${var.project_id}/demo-backend:latest"
+        image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.repo_name}/demo-backend:latest"
         ports {
           container_port = 8080
         }
@@ -39,7 +34,7 @@ resource "google_cloud_run_service" "backend" {
   }
 }
 
-# Allow unauthenticated access temporarily (Terraform requires it)
+# Allow deployer SA to invoke service
 resource "google_cloud_run_service_iam_member" "noauth" {
   service    = google_cloud_run_service.backend.name
   location   = var.region
@@ -48,7 +43,7 @@ resource "google_cloud_run_service_iam_member" "noauth" {
   member     = "serviceAccount:${var.deployer_sa_email}"
 }
 
-# IAP Web Backend Service
+# Allow allowed user to access via IAP
 resource "google_iap_web_backend_service_iam_member" "access" {
   project = var.project_id
   role    = "roles/iap.httpsResourceAccessor"
