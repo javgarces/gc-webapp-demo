@@ -1,8 +1,3 @@
-provider "google" {
-  project = var.project_id
-  region  = var.region
-}
-
 # Artifact Registry for Docker images
 resource "google_artifact_registry_repository" "backend_repo" {
   project     = var.project_id
