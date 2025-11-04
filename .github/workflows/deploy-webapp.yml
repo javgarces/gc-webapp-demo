@@ -42,7 +42,6 @@ jobs:
       - name: Debug gcloud auth
         run: |
           gcloud auth list
-          gcloud auth print-identity-token
           gcloud config set project ${{ env.GCP_PROJECT_ID }}
 
       - name: Build and push container
