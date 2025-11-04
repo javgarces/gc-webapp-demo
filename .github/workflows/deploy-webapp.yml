@@ -13,18 +13,17 @@ jobs:
 
     env:
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-      GCP_SA_EMAIL: ${{ vars.GCP_SA_EMAIL }} # <-- ensure this is set to gc-webapp-demo-deployer@custom-seeker-474803-i6.iam.gserviceaccount.com
+      GCP_SA_EMAIL: ${{ vars.GCP_SA_EMAIL }}
       GCP_WORKLOAD_ID_PROVIDER: ${{ vars.GCP_WORKLOAD_ID_PROVIDER }}
       ALLOWED_USER_EMAIL: ${{ vars.ALLOWED_USER_EMAIL }}
       SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
       REGION: australia-southeast1
+      IMAGE_NAME: demo-backend
+      REPO_NAME: demo-backend-repo
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Debug audience
-        run: |
-          echo "Audience: ${{ env.GCP_AUDIENCE }}"
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
       - name: Authenticate to GCP via WIF
         uses: google-github-actions/auth@v3
@@ -39,16 +38,6 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Debug gcloud auth
-        run: |
-          gcloud auth list
-          gcloud config set project ${{ env.GCP_PROJECT_ID }}
-
-      - name: Build and push container
-        run: |
-          cd backend
-          gcloud builds submit --tag gcr.io/${{ env.GCP_PROJECT_ID }}/demo-backend
-
       - name: Terraform Init & Apply
         working-directory: infra
         run: |
@@ -59,4 +48,15 @@ jobs:
             -var="wif_provider=${{ env.GCP_WORKLOAD_ID_PROVIDER }}" \
             -var="allowed_user_email=${{ env.ALLOWED_USER_EMAIL }}" \
             -var="support_email=${{ env.SUPPORT_EMAIL }}" \
-            -var="region=${{ env.REGION }}"
+            -var="region=${{ env.REGION }}" \
+            -var="repo_name=${{ env.REPO_NAME }}"
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker container to Artifact Registry
+        run: |
+          cd backend
+          docker build -t ${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${REPO_NAME}/${IMAGE_NAME}:latest .
+          docker push ${REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${REPO_NAME}/${IMAGE_NAME}:latest
