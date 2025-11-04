@@ -1,3 +1,8 @@
+provider "google" {
+  project = var.project_id
+  region  = var.region
+}
+
 terraform {
   required_version = ">= 1.3.0"
 
@@ -11,17 +16,4 @@ terraform {
   backend "local" {
     path = "./terraform.tfstate"
   }
-}
-
-provider "google" {
-  project = var.project_id
-  region  = var.region
-}
-
-resource "google_artifact_registry_repository" "backend_repo" {
-  project       = var.project_id
-  location      = var.region
-  repository_id = var.repo_name
-  description   = "Docker repository for backend images"
-  format        = "DOCKER"
 }
