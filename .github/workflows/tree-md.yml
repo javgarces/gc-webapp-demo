@@ -16,4 +16,4 @@ jobs:
       - name: Output Markdown-style tree
         run: |
           echo "## Repo Structure"
-          tree -L 3 --dirsfirst | sed 's/^/    /'
+          tree -a -L 3 --dirsfirst | sed 's/^/    /'
