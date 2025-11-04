@@ -50,7 +50,6 @@ jobs:
           terraform apply -auto-approve \
             -var="project_id=${{ env.GCP_PROJECT_ID }}" \
             -var="deployer_sa_email=${{ env.GCP_SA_EMAIL }}" \
-            -var="wif_provider=${{ env.GCP_WORKLOAD_ID_PROVIDER }}" \
             -var="allowed_user_email=${{ env.ALLOWED_USER_EMAIL }}" \
             -var="support_email=${{ env.SUPPORT_EMAIL }}" \
             -var="region=${{ env.REGION }}" \
