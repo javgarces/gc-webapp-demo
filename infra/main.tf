@@ -1,17 +1,19 @@
-# IAP Brand (OAuth consent screen)
-resource "google_iap_brand" "brand" {
-  project           = var.project_id
-  application_title = "Demo IAP App"
-  support_email     = var.support_email
+provider "google" {
+  project = var.project_id
+  region  = var.region
 }
 
-# IAP OAuth Client
-resource "google_iap_client" "iap_client" {
-  brand        = google_iap_brand.brand.name
-  display_name = "Demo IAP Client"
+# Artifact Registry for Docker images
+resource "google_artifact_registry_repository" "backend_repo" {
+  project     = var.project_id
+  location    = var.region
+  repository_id = var.repo_name
+  description = "Docker repository for backend images"
+  format      = "DOCKER"
+  mode        = "STANDARD_REPOSITORY"
 }
 
-# Cloud Run service pointing to Artifact Registry
+# Cloud Run backend service
 resource "google_cloud_run_service" "backend" {
   name     = "gc-demo-backend"
   location = var.region
@@ -34,20 +36,11 @@ resource "google_cloud_run_service" "backend" {
   }
 }
 
-# Allow deployer SA to invoke service
+# Allow deployer SA to invoke Cloud Run
 resource "google_cloud_run_service_iam_member" "noauth" {
   service    = google_cloud_run_service.backend.name
   location   = var.region
   project    = var.project_id
   role       = "roles/run.invoker"
   member     = "serviceAccount:${var.deployer_sa_email}"
-}
-
-# Allow allowed user to access via IAP
-resource "google_iap_web_backend_service_iam_member" "access" {
-  project = var.project_id
-  role    = "roles/iap.httpsResourceAccessor"
-  member  = "user:${var.allowed_user_email}"
-
-  web_backend_service = google_cloud_run_service.backend.id
 }
