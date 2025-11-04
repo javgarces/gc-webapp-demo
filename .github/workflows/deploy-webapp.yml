@@ -30,7 +30,7 @@ jobs:
           workload_identity_provider: ${{ env.GCP_WORKLOAD_ID_PROVIDER }}
           service_account: ${{ env.GCP_SA_EMAIL }}
           token_format: 'id_token'
-          audience: ${{ env.GCP_AUDIENCE }}
+          id_token_audience: ${{ env.GCP_AUDIENCE }}
           
 
       # Set up gcloud CLI
