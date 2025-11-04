@@ -5,7 +5,7 @@ output "cloud_run_url" {
 
 output "iap_client_id" {
   description = "OAuth client ID for IAP"
-  value       = google_iap_client.iap_client.client_id
+  value       = google_iap_client.iap_client.name
 }
 
 output "iap_client_secret" {
