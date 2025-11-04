@@ -15,6 +15,7 @@ jobs:
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       GCP_SA_EMAIL: ${{ vars.GCP_SA_EMAIL }}
       GCP_WORKLOAD_ID_PROVIDER: ${{ vars.GCP_WORKLOAD_ID_PROVIDER }}
+      GCP_AUDIENCE: ${{ vars.GCP_AUDIENCE }}
       ALLOWED_USER_EMAIL: ${{ vars.ALLOWED_USER_EMAIL }}
       SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
       REGION: australia-southeast1
@@ -28,6 +29,9 @@ jobs:
         with:
           workload_identity_provider: ${{ env.GCP_WORKLOAD_ID_PROVIDER }}
           service_account: ${{ env.GCP_SA_EMAIL }}
+          token_format: 'id_token'
+          audience: ${{ env.GCP_AUDIENCE }}
+          
 
       # Set up gcloud CLI
       - name: Set up gcloud CLI
